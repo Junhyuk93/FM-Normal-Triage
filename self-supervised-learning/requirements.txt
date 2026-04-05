@@ -1,0 +1,17 @@
+easydict
+matplotlib
+numpy
+opencv-python
+pandas
+Pillow
+scikit-image
+scikit-learn
+SimpleITK
+tensorboard
+tensorboard-plugin-wit
+torch
+torchaudio
+torchsampler
+torchsummaryX
+torchvision
+tqdm

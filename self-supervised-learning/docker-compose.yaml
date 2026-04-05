@@ -1,0 +1,15 @@
+services:
+  osteo-ssl:
+    image: pytorch/pytorch:2.0.0-cuda11.7-cudnn8-devel
+    volumes:
+      - ./:/workspace
+      - ${DATASET_PATH}:/workspace/open_dataset
+      - /mnt:/mnt
+    command: sleep infinity
+    restart: unless-stopped
+    extends:
+      file: docker-compose-gpu.yaml
+      service: gpu
+    ports:
+      - "9826:9826"
+    shm_size: '128gb'

@@ -1,0 +1,16 @@
+services:
+  mjkim1-fm-normal-triage:
+    build: .
+    volumes:
+      - /mnt/home/mjkim1/node5.gpu/self-supervised-learning:/workspace
+      - /mnt/dataset/Normal_Triage_mi2rl:/workspace/dataset
+      - /mnt:/mnt
+    command: sleep infinity
+    restart: unless-stopped
+    extends:
+      file: docker-compose-gpu.yaml
+      service: gpu
+    ports:
+      - "8844:7744"
+    shm_size: '64gb'
+
