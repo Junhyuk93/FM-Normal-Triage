@@ -17,27 +17,28 @@ FM-Normal-Triage uses a DINOv2 backbone pre-trained via self-supervised learning
 
 ```
 FM-Normal-Triage/
-├── self-supervised-learning/
-│   ├── dinov2/                         # FM downstream training (DINOv2-based)
-│   │   ├── cls_train_srpark_1024.sh    # Training launch script (example)
-│   │   ├── dinov2/
-│   │   │   ├── run/eval/linear_1024.py # Training entry point
-│   │   │   ├── eval/linear_1024.py     # Linear classifier training logic
-│   │   │   ├── data/
-│   │   │   │   ├── datasets/public_data.py  # Dataset classes (add new tasks here)
-│   │   │   │   ├── loaders.py               # DataLoader & sampler configuration
-│   │   │   │   └── samplers.py              # Custom samplers
-│   │   │   └── ...
-│   └── inference/                      # SVM training & inference
-│       ├── fm_svm_train.py             # SVM training code
-│       ├── fm_svm_train.sh             # SVM training launch script
-│       ├── fm_svm_infer4.py            # SVM inference code
-│       ├── fm_svm_infer4.sh            # SVM inference launch script
-│       ├── configs/                    # Model config files
-│       ├── data/                       # Dataset utilities
-│       ├── layers/                     # Model layer definitions
-│       ├── model_utils.py
-│       └── setup.py
+├── NT_Architecture.png
+├── README.md
+└── self-supervised-learning/
+    ├── dinov2/                              # FM downstream training (DINOv2-based)
+    │   ├── cls_train_srpark_1024.sh         # Training launch script
+    │   └── dinov2/
+    │       ├── run/eval/linear_1024.py      # Training entry point
+    │       ├── eval/linear_1024.py          # Linear classifier training logic
+    │       └── data/
+    │           ├── datasets/public_data.py  # Dataset class definitions
+    │           ├── loaders.py               # DataLoader & sampler configuration
+    │           └── samplers.py              # Custom samplers
+    └── inference/                           # SVM training & inference
+        ├── fm_svm_train.py                  # SVM training code
+        ├── fm_svm_train.sh                  # SVM training launch script
+        ├── fm_svm_infer4.py                 # SVM inference code
+        ├── fm_svm_infer4.sh                 # SVM inference launch script
+        ├── configs/                         # Model config files
+        ├── data/                            # Dataset utilities
+        ├── layers/                          # Model layer definitions
+        ├── model_utils.py
+        └── setup.py
 ```
 
 ---
@@ -92,12 +93,12 @@ Reference script: `self-supervised-learning/dinov2/cls_train_srpark_1024.sh`
 ```bash
 export PYTHONPATH="${PYTHONPATH}:."
 python dinov2/run/eval/linear_1024.py \
-    --config-file <PATH_TO_CONFIG>/config_to_1K.yaml \
+    --config-file      <PATH_TO_CONFIG>/config_to_1K.yaml \
     --pretrained-weights <PATH_TO_BACKBONE>/teacher_checkpoint.pth \
-    --output-dir <OUTPUT_DIR> \
-    --train-dataset normal-triage:root=<TRAIN_DATA_PATH> \
-    --val-dataset   normal-triage:root=<VAL_DATA_PATH> \
-    --test-datasets normal-triage:root=<TEST_DATA_PATH>
+    --output-dir       <OUTPUT_DIR> \
+    --train-dataset    normal-triage:root=<TRAIN_DATA_PATH> \
+    --val-dataset      normal-triage:root=<VAL_DATA_PATH> \
+    --test-datasets    normal-triage:root=<TEST_DATA_PATH>
 ```
 
 | Argument | Description |
@@ -113,26 +114,12 @@ python dinov2/run/eval/linear_1024.py \
 
 ### Customizing for a New Task
 
-#### Classification
-
 Edit `dinov2/eval/linear_1024.py`:
 
 - `argparser` — modify learning rates (`--learning-rates` accepts a list; multiple values trigger grid search)
 - `class LinearClassifier` — modify the FC layer for the target number of classes
 - Augmentation — modify `srpark_make_classification_{train/eval}_1K_transform`
 - Metrics — add or modify metrics using `torchmetrics`
-
-#### Regression
-
-Refer to `dinov2/eval/linear_reg.py` (Age regression reference):
-
-- Modify `metrics.py` to add R², MAE, or other regression metrics
-- Change loss at line ~365 (L1, MSE, etc.)
-
-#### Segmentation / Detection
-
-- Segmentation: see `notebooks/semantic_segmentation.ipynb`
-- Detection: follow the Classification pattern
 
 ### Adding a New Dataset
 
@@ -164,15 +151,15 @@ Reference: `self-supervised-learning/inference/fm_svm_train.sh`
 
 ```bash
 python fm_svm_train.py \
-  --config-file     <PATH_TO_CONFIG>/config.yaml \
-  --pretrained-weights <PATH_TO_BACKBONE>/teacher_checkpoint.pth \
+  --config-file          <PATH_TO_CONFIG>/config.yaml \
+  --pretrained-weights   <PATH_TO_BACKBONE>/teacher_checkpoint.pth \
   --pretrained-linear-list "<LINEAR_HEAD_CKPT_1>,<LINEAR_HEAD_CKPT_2>,...,<LINEAR_HEAD_CKPT_K>" \
-  --train-dataset   normal-triage:root=<TRAIN_DATA_PATH> \
-  --batch-size      1 \
+  --train-dataset        normal-triage:root=<TRAIN_DATA_PATH> \
+  --batch-size           1 \
   --training-num-classes 3 \
-  --svm-type        rbf \
-  --C               1.0 \
-  --svm-out         <OUTPUT_DIR>/svm_weight.pickle
+  --svm-type             rbf \
+  --C                    1.0 \
+  --svm-out              <OUTPUT_DIR>/svm_weight.pickle
 ```
 
 | Argument | Description |
@@ -186,11 +173,6 @@ python fm_svm_train.py \
 | `--training-num-classes` | Number of classes in the linear head (default: 3) |
 | `--require-exact-num-models` | Safety check: exact number of linear heads expected (default: 13) |
 
-**Outputs:**
-- `<svm-out>` — trained SVM model (pickle)
-- `train_features.npy` — extracted feature matrix
-- `train_labels_binary.npy` — binary labels (0=Normal, 1=Abnormal)
-
 ---
 
 ## SVM Inference
@@ -201,7 +183,7 @@ python fm_svm_train.py \
 2. Extract probability features for the test set
 3. Load the pre-trained SVM and run prediction
 4. Apply a decision score threshold (default: 0.29)
-5. Output per-sample CSV, ROC curve data, AUC, sensitivity, specificity, NPV, etc.
+5. Output per-sample CSV, ROC curve data, and metrics (AUC, sensitivity, specificity, NPV, etc.)
 
 ### Inference Script
 
@@ -209,14 +191,14 @@ Reference: `self-supervised-learning/inference/fm_svm_infer4.sh`
 
 ```bash
 python fm_svm_infer4.py \
-  --config-file     <PATH_TO_CONFIG>/config.yaml \
-  --pretrained-weights <PATH_TO_BACKBONE>/teacher_checkpoint.pth \
+  --config-file          <PATH_TO_CONFIG>/config.yaml \
+  --pretrained-weights   <PATH_TO_BACKBONE>/teacher_checkpoint.pth \
   --pretrained-linear-list "<LINEAR_HEAD_CKPT_1>,<LINEAR_HEAD_CKPT_2>,...,<LINEAR_HEAD_CKPT_K>" \
-  --test-dataset    normal-triage:root=<TEST_DATA_PATH> \
-  --batch-size      1 \
+  --test-dataset         normal-triage:root=<TEST_DATA_PATH> \
+  --batch-size           1 \
   --training-num-classes 3 \
-  --svm-model-path  <PATH_TO_SVM>/svm_weight.pickle \
-  --outdir          <OUTPUT_DIR>
+  --svm-model-path       <PATH_TO_SVM>/svm_weight.pickle \
+  --outdir               <OUTPUT_DIR>
 ```
 
 | Argument | Description |
@@ -226,20 +208,6 @@ python fm_svm_infer4.py \
 | `--outdir` | Directory for output files |
 | `--save-features` | Save extracted features (default: True) |
 | `--save-preds` | Save raw SVM predictions (default: True) |
-
-**Outputs (in `--outdir`):**
-| File | Description |
-|---|---|
-| `detailed_results.csv` | Per-sample predictions, probabilities, decision scores |
-| `per_sample_binary_030.csv` | Simplified per-sample binary prediction |
-| `roc_curve_data.csv` | FPR / TPR / threshold for ROC curve |
-| `features.npy` | Extracted feature matrix |
-| `labels_binary.npy` | Ground-truth binary labels |
-| `svm_preds.npy` | Raw SVM predictions |
-| `FP.txt` | File paths of false positives |
-| `FN.txt` | File paths of false negatives |
-
-**Metrics printed to stdout:** Accuracy, PPV, Precision, Sensitivity, Specificity, NPV, AUC
 
 ---
 
