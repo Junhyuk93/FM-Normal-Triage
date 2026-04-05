@@ -1,0 +1,3 @@
+[submodule "self-supervised-learning"]
+	path = self-supervised-learning
+	url = https://github.com/Junhyuk93/self-supervised-learning.git
