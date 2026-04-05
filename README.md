@@ -29,7 +29,9 @@ FM-Normal-Triage/
     │           ├── datasets/public_data.py  # Dataset class definitions
     │           ├── loaders.py               # DataLoader & sampler configuration
     │           └── samplers.py              # Custom samplers
-    └── inference/                           # SVM training & inference
+    └── inference/                           # FM & SVM training / inference
+        ├── fm_infer.py                      # FM inference code
+        ├── fm_infer_jh.sh                   # FM inference launch script
         ├── fm_svm_train.py                  # SVM training code
         ├── fm_svm_train.sh                  # SVM training launch script
         ├── fm_svm_infer4.py                 # SVM inference code
@@ -132,6 +134,45 @@ Edit `dinov2/eval/linear_1024.py`:
 `DISTRIBUTED`, `EPOCH`, `INFINITE`, `SHARDED_INFINITE`, `SHARDED_INFINITE_NEW`, `GELEE_TORCH` (WeightedRandomShardedSampler)
 
 To add a new sampler, implement it in `dinov2/data/samplers.py` and register it with an `elif` block in `loaders.py::_make_sampler`.
+
+---
+
+## FM Inference
+
+Runs the fine-tuned FM (backbone + ensemble of linear heads) directly on a test set to produce per-class softmax probabilities and accuracy metrics.
+
+### How It Works
+
+1. Load the FM backbone + K linear heads
+2. Run forward pass for each sample → average softmax probabilities across all heads
+3. Predict by argmax and report overall and per-class accuracy
+
+### Inference Script
+
+Reference: `self-supervised-learning/inference/fm_infer_jh.sh`
+
+```bash
+export PYTHONPATH=..
+export XFORMERS_DISABLED=1
+
+python fm_infer.py \
+  --config-file          <PATH_TO_CONFIG>/config.yaml \
+  --pretrained-weights   <PATH_TO_BACKBONE>/teacher_checkpoint.pth \
+  --pretrained-linear-list "<LINEAR_HEAD_CKPT_1>,<LINEAR_HEAD_CKPT_2>,...,<LINEAR_HEAD_CKPT_K>" \
+  --test-dataset         normal-triage:root=<TEST_DATA_PATH> \
+  --batch-size           1 \
+  --training-num-classes 3
+```
+
+| Argument | Description |
+|---|---|
+| `--pretrained-weights` | Path to pre-trained FM backbone checkpoint |
+| `--pretrained-linear-list` | Comma-separated list of linear head checkpoints (order preserved) |
+| `--pretrained-linear-glob` | Alternatively, a glob pattern for checkpoint paths |
+| `--test-dataset` | Dataset string with root path |
+| `--training-num-classes` | Number of output classes (default: 3) |
+
+**Metrics printed to stdout:** Overall accuracy, per-class accuracy (normal / target / others)
 
 ---
 
