@@ -13,6 +13,14 @@ FM-Normal-Triage uses a DINOv2 backbone pre-trained via self-supervised learning
 
 ---
 
+## Pre-trained Weights
+
+The pre-trained FM backbone and linear head checkpoints are not publicly distributed.
+To request access, please contact us at **akznsk1@gmail.com** with a brief description of your intended use.
+Requests are reviewed individually and may not be fulfilled in all cases.
+
+---
+
 ## Repository Structure
 
 ```
